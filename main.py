@@ -1,29 +1,32 @@
-from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Annotated
 import crud
 import models
 import schemas
-
-
 from database import SessionLocal, engine
 
 app = FastAPI()
 
+# Creates all the tables defined by our ORM models (in this case, just the User table) 
+# In the database specified by engine. 
+# If the tables already exist, it will not recreate them.
+models.Base.metadata.create_all(bind=engine)
 
-@app.get("/")
-async def docs_redirect():
-    response = RedirectResponse(url='/docs')
-    return response
-
+# get_db manages the lifecycle of a database session, ensuring it is opened and closed properly.
 def get_db():
   db = SessionLocal()
   try:
       yield db
   finally:
       db.close()
+
+
+@app.get("/")
+async def docs_redirect():
+    response = RedirectResponse(url='/docs')
+    return response
 
 @app.get("/users/", response_model=List[schemas.User])
 def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
